@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POWER OS - Microgrid Operations & Dispatch Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+</head>
+<body class="poweros-theme">
+  <!-- Top Navigation Header -->
+  <header class="top-nav">
+    <div class="brand-group">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-title">POWER OS</span>
+        <span class="brand-subtitle">Microgrid Dispatch & Telemetry OS</span>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="nav-tab-btn active" onclick="switchTab('live-ops')">⚡ Live Operations</button>
+      <button class="nav-tab-btn" onclick="switchTab('settlements')">📜 Cryptographic Settlements</button>
+      <button class="nav-tab-btn" onclick="switchTab('esg')">🌱 ESG & Carbon Avoidance</button>
+    </nav>
+
+    <div class="system-status-pills">
+      <div class="status-pill status-live" id="stream-status-pill">
+        <span class="pulse-dot"></span>
+        <span id="stream-status-text">LIVE (1 Hz)</span>
+      </div>
+      <div class="status-pill status-community">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+          <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+        <span id="active-community-name">Oloibiri Green Mini-Grid</span>
+      </div>
+      <div class="status-pill status-clock" id="virtual-clock">
+        <span id="time-display">--:--:-- UTC</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="dashboard-container">
+    
+    <!-- TAB 1: LIVE OPERATIONS -->
+    <div id="tab-live-ops" class="tab-content active">
+      <!-- Top Hero Metric Tickers -->
+      <section class="metrics-ticker-row">
+        <div class="metric-card card-solar">
+          <div class="metric-header">
+            <span class="metric-label">SOLAR PV GENERATION</span>
+            <span class="metric-badge badge-solar">☀️ ACTIVE</span>
+          </div>
+          <div class="metric-body">
+            <span class="metric-value" id="val-solar-kw">0.0</span>
+            <span class="metric-unit">kW</span>
+          </div>
+          <div class="metric-footer">
+            <span class="sub-text">Peak Capacity: 30.0 kW</span>
+            <span class="sub-trend positive" id="val-solar-daily">Clean Renewable Power</span>
+          </div>
+        </div>
+
+        <div class="metric-card card-battery">
+          <div class="metric-header">
+            <span class="metric-label">BESS STORAGE (LFP)</span>
+            <span class="metric-badge badge-battery" id="badge-battery-status">STANDBY</span>
+          </div>
+          <div class="metric-body">
+            <span class="metric-value" id="val-battery-kw">0.0</span>
+            <span class="metric-unit">kW</span>
+          </div>
+          <div class="metric-footer">
+            <div class="soc-bar-container">
+              <div class="soc-bar-fill" id="soc-bar" style="width: 80%;"></div>
+            </div>
+            <div class="soc-label-group">
+              <span>SoC: <strong id="val-battery-soc">80.0%</strong></span>
+              <span>Health: <strong id="val-battery-health">99.2%</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-card card-demand">
+          <div class="metric-header">
+            <span class="metric-label">TOTAL COMMUNITY DEMAND</span>
+            <span class="metric-badge badge-demand">LOAD ACTIVE</span>
+          </div>
+          <div class="metric-body">
+            <span class="metric-value" id="val-total-demand">0.0</span>
+            <span class="metric-unit">kW</span>
+          </div>
+          <div class="metric-footer">
+            <span class="sub-text">Critical Tier: <strong id="val-critical-load">0.0 kW</strong></span>
+            <span class="sub-text">Non-Critical: <strong id="val-noncrit-load">0.0 kW</strong></span>
+          </div>
+        </div>
+
+        <div class="metric-card card-lcoe">
+          <div class="metric-header">
+            <span class="metric-label">REAL-TIME LCOE & SAVINGS</span>
+            <span class="metric-badge badge-savings" id="badge-savings-pct">92% SAVINGS</span>
+          </div>
+          <div class="metric-body">
+            <span class="metric-value" id="val-lcoe">$0.018</span>
+            <span class="metric-unit">/ kWh</span>
+          </div>
+          <div class="metric-footer">
+            <span class="sub-text">Hourly Net Savings:</span>
+            <span class="sub-trend positive" id="val-hourly-savings">+$14.20 / hr</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Middle Row: Power Flow & AI Dispatch -->
+      <section class="middle-split-row">
+        <!-- Live Interactive Power Flow Bus -->
+        <div class="panel energy-flow-panel">
+          <div class="panel-header">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+              </svg>
+              Microgrid Power Flow & Bus Topology
+            </h3>
+            <span class="topology-badge">400V AC 3-Phase Bus</span>
+          </div>
+
+          <div class="flow-diagram-container">
+            <div class="flow-col flow-sources">
+              <div class="node-box node-solar" id="node-solar">
+                <div class="node-icon">☀️</div>
+                <div class="node-info">
+                  <div class="node-name">Solar Array</div>
+                  <div class="node-val" id="flow-solar-val">24.5 kW</div>
+                </div>
+              </div>
+
+              <div class="node-box node-battery" id="node-battery">
+                <div class="node-icon">🔋</div>
+                <div class="node-info">
+                  <div class="node-name">60 kWh BESS</div>
+                  <div class="node-val" id="flow-battery-val">-4.0 kW (Chg)</div>
+                </div>
+              </div>
+
+              <div class="node-box node-grid" id="node-grid">
+                <div class="node-icon">⚡</div>
+                <div class="node-info">
+                  <div class="node-name">Utility Grid</div>
+                  <div class="node-val" id="flow-grid-val">0.0 kW (Standby)</div>
+                </div>
+              </div>
+
+              <div class="node-box node-gen" id="node-gen">
+                <div class="node-icon">🛢️</div>
+                <div class="node-info">
+                  <div class="node-name">Diesel Backup</div>
+                  <div class="node-val" id="flow-gen-val">0.0 kW (Off)</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flow-col flow-bus">
+              <div class="bus-bar">
+                <span class="bus-title">MAIN MICROGRID BUS</span>
+                <span class="bus-freq" id="bus-freq">50.02 Hz | 231 V</span>
+              </div>
+            </div>
+
+            <div class="flow-col flow-loads">
+              <div class="node-box node-load" id="load-coldstore">
+                <div class="node-icon">❄️</div>
+                <div class="node-info">
+                  <div class="node-name">Cold Storage (Critical)</div>
+                  <div class="node-val" id="load-coldstore-val">7.2 kW</div>
+                </div>
+              </div>
+
+              <div class="node-box node-load" id="load-residential">
+                <div class="node-icon">🏡</div>
+                <div class="node-info">
+                  <div class="node-name">Residential Clusters</div>
+                  <div class="node-val" id="load-res-val">5.4 kW</div>
+                </div>
+              </div>
+
+              <div class="node-box node-load" id="load-workshop">
+                <div class="node-icon">🛠️</div>
+                <div class="node-info">
+                  <div class="node-name">Workshops & Commercial</div>
+                  <div class="node-val" id="load-work-val">3.8 kW</div>
+                </div>
+              </div>
+
+              <div class="node-box node-load" id="load-facility">
+                <div class="node-icon">🏥</div>
+                <div class="node-info">
+                  <div class="node-name">Community Clinic</div>
+                  <div class="node-val" id="load-clinic-val">2.1 kW</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Optimal Dispatch AI -->
+        <div class="panel optimization-panel">
+          <div class="panel-header">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2"></path>
+              </svg>
+              Optimal Dispatch AI
+            </h3>
+            <span class="guard-pill" id="guard-status-pill">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Physical Guard Verified
+            </span>
+          </div>
+
+          <div class="opt-card">
+            <div class="opt-action-title" id="opt-action-name">OPTIMIZE: SOLAR + BESS DISPATCH</div>
+            <p class="opt-explanation" id="opt-explanation-text">
+              Solar generation satisfies 100% of community load with surplus 5.8 kW diverted to BESS charging. Diesel generator is shut down, saving $14.20/hr in fuel expenses.
+            </p>
+
+            <div class="opt-metrics-grid">
+              <div class="opt-metric">
+                <span class="lbl">Baseline Cost</span>
+                <span class="val" id="opt-baseline-cost">$18.50/hr</span>
+              </div>
+              <div class="opt-metric">
+                <span class="lbl">Optimized Cost</span>
+                <span class="val" id="opt-current-cost">$1.45/hr</span>
+              </div>
+              <div class="opt-metric">
+                <span class="lbl">Autonomy</span>
+                <span class="val" id="opt-autonomy">12.5 hrs</span>
+              </div>
+              <div class="opt-metric">
+                <span class="lbl">Shortage Risk</span>
+                <span class="val risk-low" id="opt-risk">LOW</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Simulation Scenarios -->
+          <div class="scenario-controls">
+            <div class="control-title">LIVE SIMULATION SCENARIOS</div>
+            <div class="scenario-buttons-grid">
+              <button class="btn-scenario active" data-scenario="normal" onclick="applyScenario('normal')">
+                ☀️ Normal Afternoon
+              </button>
+              <button class="btn-scenario" data-scenario="cloud_pass" onclick="applyScenario('cloud_pass')">
+                ⛅ Cloud Cover Pass
+              </button>
+              <button class="btn-scenario" data-scenario="grid_blackout" onclick="applyScenario('grid_blackout')">
+                🔌 Grid Blackout
+              </button>
+              <button class="btn-scenario" data-scenario="heatwave_surge" onclick="applyScenario('heatwave_surge')">
+                🔥 Heatwave Peak
+              </button>
+              <button class="btn-scenario" data-scenario="generator_failover" onclick="applyScenario('generator_failover')">
+                🛢️ Night Gen Backup
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bottom Row -->
+      <section class="bottom-row">
+        <div class="panel chart-panel">
+          <div class="panel-header">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+              24-Hour Energy Generation & Demand Dispatch
+            </h3>
+            <span class="chart-legend-text">Aggregated TimescaleDB Rollups</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="energyChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel alerts-panel">
+          <div class="panel-header">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              Active Safety Alerts & Events
+            </h3>
+            <span class="alerts-count-badge" id="alerts-count">0 ACTIVE</span>
+          </div>
+          <div class="alerts-feed" id="alerts-feed-container">
+            <div class="alert-item alert-info">
+              <div class="alert-header">
+                <span class="alert-type">GRID STATUS</span>
+                <span class="alert-time">Just now</span>
+              </div>
+              <div class="alert-msg">All systems operating within optimal thermal and voltage limits.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 2: CRYPTOGRAPHIC SETTLEMENTS -->
+    <div id="tab-settlements" class="tab-content">
+      <section class="settlement-hero-panel panel">
+        <div class="panel-header">
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+            Cryptographic Energy Billing & Merkle Notarization
+          </h3>
+          <button class="btn-action" onclick="closeNewEpoch()">
+            ⚡ Close & Notarize New Epoch
+          </button>
+        </div>
+
+        <div class="settlement-meta-grid" id="epoch-meta-container">
+          <div class="meta-box">
+            <span class="lbl">EPOCH STATUS</span>
+            <span class="val positive" id="epoch-status">NOTARIZED</span>
+          </div>
+          <div class="meta-box">
+            <span class="lbl">TOTAL CONSUMPTION</span>
+            <span class="val" id="epoch-consumption">2,227.5 kWh</span>
+          </div>
+          <div class="meta-box">
+            <span class="lbl">COMMUNITY SAVINGS</span>
+            <span class="val positive" id="epoch-savings">+$842.10</span>
+          </div>
+          <div class="meta-box">
+            <span class="lbl">MERKLE ROOT HASH</span>
+            <span class="val mono" id="epoch-merkle-root">0x7f4b9c8...4e21</span>
+          </div>
+        </div>
+
+        <!-- Invoices Ledger -->
+        <div class="invoices-ledger-table-wrap">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Consumer / Entity</th>
+                <th>Meter Device</th>
+                <th>Consumption</th>
+                <th>Solar Allocated</th>
+                <th>BESS Allocated</th>
+                <th>Blended Tariff</th>
+                <th>Amount Due</th>
+                <th>Audit Proof</th>
+              </tr>
+            </thead>
+            <tbody id="invoices-table-body">
+              <!-- Dynamically Populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Merkle Proof Verification Modal / Banner -->
+        <div class="proof-verification-box" id="proof-box" style="display: none;">
+          <div class="proof-header">
+            <h4>🔐 Cryptographic Merkle Inclusion Proof</h4>
+            <button class="btn-close" onclick="closeProofBox()">✕</button>
+          </div>
+          <div class="proof-body">
+            <div class="proof-row"><span>Leaf Hash:</span><code id="proof-leaf">0x...</code></div>
+            <div class="proof-row"><span>Merkle Root:</span><code id="proof-root">0x...</code></div>
+            <div class="proof-row"><span>Verification Status:</span><strong class="positive" id="proof-status">VALID INCLUSION PROOF ✓</strong></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 3: ESG & CARBON METRICS -->
+    <div id="tab-esg" class="tab-content">
+      <section class="esg-metrics-grid">
+        <div class="panel esg-card">
+          <div class="panel-header">
+            <h3>🌱 Clean Energy Penetration</h3>
+            <span class="esg-rating-badge" id="esg-rating">AAA</span>
+          </div>
+          <div class="esg-big-val" id="esg-clean-fraction">96.8%</div>
+          <p class="esg-desc">Solar PV and battery discharge deliver clean electricity with near-zero fossil carbon intensity.</p>
+        </div>
+
+        <div class="panel esg-card">
+          <div class="panel-header">
+            <h3>📉 Daily CO₂ Avoided</h3>
+          </div>
+          <div class="esg-big-val positive" id="esg-co2-avoided">384.2 kg</div>
+          <p class="esg-desc">Equivalent to saving 118 liters of diesel fuel emissions every operational 24-hour cycle.</p>
+        </div>
+
+        <div class="panel esg-card">
+          <div class="panel-header">
+            <h3>🌍 Carbon Intensity Rate</h3>
+          </div>
+          <div class="esg-big-val" id="esg-carbon-intensity">0.0 kg/hr</div>
+          <p class="esg-desc">Diesel genset remains in zero-emission standby under active economic dispatch.</p>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

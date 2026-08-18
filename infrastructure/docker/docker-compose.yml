@@ -1,0 +1,183 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # 1. CORE DATA INFRASTRUCTURE
+  # ==========================================
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: poweros-timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: power_os
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ../database/init-timescale.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d power_os"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: poweros-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h localhost -t '$$SYS/#' -C 1 || exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: poweros-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ==========================================
+  # 2. POWER_OS MICROSERVICES
+  # ==========================================
+  auth-device-service:
+    build:
+      context: ../..
+      dockerfile: services/auth-device-service/Dockerfile
+    container_name: poweros-auth-device
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:postgrespassword@timescaledb:5432/power_os
+      JWT_SECRET_KEY: poweros-super-secret-production-key-2026
+    ports:
+      - "8000:8000"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+
+  ingestion-service:
+    build:
+      context: ../..
+      dockerfile: services/ingestion-service/Dockerfile
+    container_name: poweros-ingestion
+    restart: unless-stopped
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+      DATABASE_URL: postgresql://postgres:postgrespassword@timescaledb:5432/power_os
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8001:8001"
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  energy-service:
+    build:
+      context: ../..
+      dockerfile: services/energy-service/Dockerfile
+    container_name: poweros-energy
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:postgrespassword@timescaledb:5432/power_os
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8002:8002"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  forecasting-service:
+    build:
+      context: ../..
+      dockerfile: services/forecasting-service/Dockerfile
+    container_name: poweros-forecasting
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:postgrespassword@timescaledb:5432/power_os
+    ports:
+      - "8003:8003"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+
+  optimization-service:
+    build:
+      context: ../..
+      dockerfile: services/optimization-service/Dockerfile
+    container_name: poweros-optimization
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:postgrespassword@timescaledb:5432/power_os
+    ports:
+      - "8004:8004"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+
+  gateway-service:
+    build:
+      context: ../..
+      dockerfile: services/gateway-service/Dockerfile
+    container_name: poweros-gateway
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      AUTH_SERVICE_URL: http://auth-device-service:8000
+      INGESTION_SERVICE_URL: http://ingestion-service:8001
+      ENERGY_SERVICE_URL: http://energy-service:8002
+      FORECASTING_SERVICE_URL: http://forecasting-service:8003
+      OPTIMIZATION_SERVICE_URL: http://optimization-service:8004
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-device-service
+      - ingestion-service
+      - energy-service
+      - forecasting-service
+      - optimization-service
+      - redis
+
+  # ==========================================
+  # 3. REAL-TIME HARDWARE SIMULATOR
+  # ==========================================
+  simulator:
+    build:
+      context: ../..
+      dockerfile: simulator/Dockerfile
+    container_name: poweros-simulator
+    restart: unless-stopped
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+      TIME_ACCELERATION_FACTOR: 60.0
+      TICK_INTERVAL_SECONDS: 1.0
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+
+volumes:
+  timescaledb_data:
+  mosquitto_data:
+  redis_data:
