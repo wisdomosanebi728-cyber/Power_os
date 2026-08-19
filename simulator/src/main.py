@@ -2,6 +2,11 @@ import time
 import signal
 import sys
 import logging
+import os
+import threading
+from fastapi import FastAPI
+import uvicorn
+
 from src.config import SimulatorConfig
 from src.scenario_engine import ScenarioEngine
 from src.mqtt_publisher import MqttTelemetryPublisher
@@ -12,8 +17,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger("poweros-simulator")
 
+app = FastAPI()
 
-def main():
+@app.get("/")
+def health_check():
+    return {"status": "online", "service": "poweros-simulator"}
+
+def run_simulator():
     logger.info("Initializing POWER OS Multi-Source Energy Simulator...")
     config = SimulatorConfig()
     engine = ScenarioEngine(config)
@@ -42,7 +52,7 @@ def main():
             if step_count % 10 == 0:
                 solar = next((t for t in telemetry_batch if t["source_type"] == "solar"), None)
                 battery = next((t for t in telemetry_batch if t["source_type"] == "battery"), None)
-                generator = next((t for t in telemetry_batch if t["source_type"] == "generator"), None)
+                generator = next((t for tin telemetry_batch if t["source_type"] == "generator"), None)
                 loads = sum(t["power_kw"] for t in telemetry_batch if t["source_type"] == "load")
 
                 logger.info(
@@ -62,6 +72,14 @@ def main():
         publisher.stop()
         logger.info("POWER OS Energy Simulator stopped cleanly.")
 
+def main():
+    # Start the continuous simulation loop in a background thread
+    sim_thread = threading.Thread(target=run_simulator, daemon=True)
+    sim_thread.start()
+
+    # Start the FastAPI web server to satisfy Render's HTTP health checks on the free tier
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
     main()
