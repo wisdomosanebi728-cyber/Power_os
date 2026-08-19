@@ -1,11 +1,11 @@
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any
-from simulator.src.config import SimulatorConfig
-from simulator.src.models.solar import SolarInverterModel
-from simulator.src.models.battery import BatteryStorageModel
-from simulator.src.models.generator import DieselGeneratorModel
-from simulator.src.models.grid import GridIncomerModel
-from simulator.src.models.consumers import ConsumerMeterModel
+from src.config import SimulatorConfig
+from src.models.solar import SolarInverterModel
+from src.models.battery import BatteryStorageModel
+from src.models.generator import DieselGeneratorModel
+from src.models.grid import GridIncomerModel
+from src.models.consumers import ConsumerMeterModel
 
 
 class ScenarioEngine:
