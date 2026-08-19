@@ -3,7 +3,7 @@ import time
 import logging
 from typing import Dict, Any, List
 import paho.mqtt.client as mqtt
-from simulator.src.config import SimulatorConfig
+from src.config import SimulatorConfig
 
 logger = logging.getLogger("poweros-simulator-publisher")
 
