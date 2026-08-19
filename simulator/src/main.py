@@ -3,8 +3,8 @@ import signal
 import sys
 import logging
 from src.config import SimulatorConfig
-from simulator.src.scenario_engine import ScenarioEngine
-from simulator.src.mqtt_publisher import MqttTelemetryPublisher
+from src.scenario_engine import ScenarioEngine
+from src.mqtt_publisher import MqttTelemetryPublisher
 
 logging.basicConfig(
     level=logging.INFO,
