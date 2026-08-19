@@ -52,7 +52,7 @@ def run_simulator():
             if step_count % 10 == 0:
                 solar = next((t for t in telemetry_batch if t["source_type"] == "solar"), None)
                 battery = next((t for t in telemetry_batch if t["source_type"] == "battery"), None)
-                generator = next((t for tin telemetry_batch if t["source_type"] == "generator"), None)
+                generator = next((t for t in telemetry_batch if t["source_type"] == "generator"), None)
                 loads = sum(t["power_kw"] for t in telemetry_batch if t["source_type"] == "load")
 
                 logger.info(
