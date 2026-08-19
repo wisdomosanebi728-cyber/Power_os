@@ -90,3 +90,45 @@ def test_device_provisioning(client_with_db):
     devices = list_res.json()
     assert len(devices) == 1
     assert devices[0]["id"] == "sol-abuja-01"
+
+
+def test_guest_login(client_with_db):
+    client, _ = client_with_db
+    res = client.post("/api/v1/auth/guest", json={"guest_name": "Demo Visitor"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "access_token" in data
+    assert data["user"]["role"] == "guest"
+    assert data["user"]["email"] == "guest@poweros.energy"
+
+    # Test /me with guest token
+    me_res = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {data['access_token']}"})
+    assert me_res.status_code == 200
+    assert me_res.json()["role"] == "guest"
+
+
+def test_google_login(client_with_db):
+    client, _ = client_with_db
+    g_payload = {
+        "email": "user.gmail@gmail.com",
+        "full_name": "Gmail Test User",
+        "google_token": "mock_google_id_token_12345",
+        "role": "consumer",
+    }
+    res = client.post("/api/v1/auth/google", json=g_payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert "access_token" in data
+    assert data["user"]["email"] == "user.gmail@gmail.com"
+    assert data["user"]["full_name"] == "Gmail Test User"
+
+
+def test_admin_demo_login(client_with_db):
+    client, _ = client_with_db
+    res = client.post("/api/v1/auth/admin-demo")
+    assert res.status_code == 200
+    data = res.json()
+    assert "access_token" in data
+    assert data["user"]["role"] == "admin"
+    assert data["user"]["email"] == "admin@poweros.energy"
+

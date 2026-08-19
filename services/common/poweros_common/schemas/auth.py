@@ -9,11 +9,24 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     CONSUMER = "consumer"
     AUDITOR = "auditor"
+    GUEST = "guest"
 
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6)
+
+
+class GoogleAuthRequest(BaseModel):
+    google_token: Optional[str] = None
+    email: EmailStr
+    full_name: str
+    picture: Optional[str] = None
+    role: UserRole = UserRole.CONSUMER
+
+
+class GuestAuthRequest(BaseModel):
+    guest_name: Optional[str] = "Guest Visitor"
 
 
 class UserRegister(BaseModel):

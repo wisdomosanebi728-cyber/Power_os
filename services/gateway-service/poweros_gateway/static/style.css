@@ -805,3 +805,388 @@ body.poweros-theme {
   padding: 4px 12px;
   border-radius: 20px;
 }
+
+/* ==========================================
+   AUTHENTICATION & UNIQUE LOGIN PORTAL STYLES
+   ========================================== */
+.login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(7, 9, 14, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 1;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.login-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.login-bg-glow {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, rgba(6, 182, 212, 0.08) 50%, rgba(0, 0, 0, 0) 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  border-radius: 50%;
+  animation: pulseGlow 6s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+  0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.7; }
+  100% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+}
+
+.login-card {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  background: rgba(13, 17, 23, 0.92);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(16, 185, 129, 0.12);
+  border-radius: 20px;
+  padding: 36px 32px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.login-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.login-logo-glow {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.2));
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.login-logo-glow svg {
+  width: 32px;
+  height: 32px;
+}
+
+.login-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #ffffff 30%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+}
+
+.login-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.login-tabs {
+  display: flex;
+  background: rgba(22, 27, 34, 0.8);
+  border-radius: 12px;
+  padding: 4px;
+  border: 1px solid var(--border-subtle);
+  gap: 4px;
+}
+
+.login-tab-btn {
+  flex: 1;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.82rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.login-tab-btn.active {
+  background: rgba(16, 185, 129, 0.18);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+}
+
+.login-tab-panel {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login-tab-panel.active {
+  display: flex;
+}
+
+.quick-access-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.access-mode-card {
+  background: rgba(22, 27, 34, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.access-mode-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
+}
+
+.card-guest:hover {
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.card-admin:hover {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+}
+
+.mode-icon {
+  font-size: 1.8rem;
+}
+
+.mode-info h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 4px 0;
+}
+
+.mode-info p {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.btn-mode-action {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: auto;
+}
+
+.btn-guest {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.btn-guest:hover {
+  background: #10b981;
+  color: #07090e;
+}
+
+.btn-admin {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.btn-admin:hover {
+  background: #f59e0b;
+  color: #07090e;
+}
+
+.divider-or {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 6px 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.divider-or::before,
+.divider-or::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.divider-or span {
+  padding: 0 12px;
+}
+
+.btn-gmail-auth {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn-gmail-auth:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.google-svg-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(22, 27, 34, 0.9);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+}
+
+.btn-primary-auth {
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #07090e;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.btn-primary-auth:hover {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.login-footer {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+/* User Session Status Pill in Nav Header */
+.status-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-user:hover {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.user-role-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.role-badge-guest { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+.role-badge-admin { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+.role-badge-operator { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.role-badge-consumer { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+
+.btn-logout {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 4px;
+  transition: color 0.2s ease;
+}
+
+.btn-logout:hover {
+  color: #ef4444;
+}
+

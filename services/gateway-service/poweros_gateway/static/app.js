@@ -9,6 +9,7 @@ let currentEpochId = null;
 document.addEventListener("DOMContentLoaded", () => {
   initClock();
   initChart();
+  initAuthSession();
   initWebSocket();
   fetchInitialHistory();
   fetchSettlements();
@@ -43,7 +44,10 @@ function initClock() {
   }, 1000);
 }
 
-// WebSocket Connection with auto-reconnect
+let wsRetries = 0;
+let pollingInterval = null;
+
+// WebSocket Connection with auto-reconnect & HTTP Polling Fallback
 function initWebSocket() {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${protocol}//${window.location.host}/ws/live/${COMMUNITY_ID}`;
@@ -54,6 +58,8 @@ function initWebSocket() {
     socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
+      wsRetries = 0;
+      if (pollingInterval) clearInterval(pollingInterval);
       pill.className = "status-pill status-live";
       pillText.textContent = "LIVE (1 Hz)";
     };
@@ -70,9 +76,19 @@ function initWebSocket() {
     };
 
     socket.onclose = () => {
-      pill.className = "status-pill";
-      pillText.textContent = "RECONNECTING...";
-      setTimeout(initWebSocket, 2000);
+      wsRetries++;
+      if (wsRetries > 2) {
+        pill.className = "status-pill status-live";
+        pillText.textContent = "HTTP LIVE (0.5 Hz)";
+        if (!pollingInterval) {
+          pollTelemetryFallback();
+          pollingInterval = setInterval(pollTelemetryFallback, 2000);
+        }
+      } else {
+        pill.className = "status-pill";
+        pillText.textContent = "RECONNECTING...";
+        setTimeout(initWebSocket, 2000);
+      }
     };
 
     socket.onerror = () => {
@@ -80,7 +96,12 @@ function initWebSocket() {
     };
   } catch (e) {
     console.warn("WebSocket init error, falling back to HTTP polling", e);
-    setInterval(pollTelemetryFallback, 2000);
+    pill.className = "status-pill status-live";
+    pillText.textContent = "HTTP LIVE (0.5 Hz)";
+    if (!pollingInterval) {
+      pollTelemetryFallback();
+      pollingInterval = setInterval(pollTelemetryFallback, 2000);
+    }
   }
 }
 
@@ -408,3 +429,256 @@ async function fetchESGMetrics() {
     console.error("Failed to fetch ESG metrics:", err);
   }
 }
+
+// ==========================================
+// AUTHENTICATION & LOGIN PORTAL MANAGER
+// ==========================================
+
+let currentUser = null;
+let currentToken = null;
+
+async function initAuthSession() {
+  const savedToken = localStorage.getItem("poweros_token");
+  const savedUserJson = localStorage.getItem("poweros_user");
+
+  if (savedToken && savedUserJson) {
+    try {
+      currentToken = savedToken;
+      currentUser = JSON.parse(savedUserJson);
+      
+      // Verify token with backend
+      const res = await fetch("/api/v1/auth/me", {
+        headers: { "Authorization": `Bearer ${savedToken}` }
+      });
+      if (res.ok) {
+        currentUser = await res.json();
+        localStorage.setItem("poweros_user", JSON.stringify(currentUser));
+        updateUserSessionUI(currentUser);
+        closeLoginOverlay();
+        return;
+      }
+    } catch (e) {
+      console.warn("Session verification failed, requesting login", e);
+    }
+  }
+
+  // If no valid session, show login overlay
+  openLoginOverlay();
+}
+
+function openLoginOverlay() {
+  const overlay = document.getElementById("login-overlay");
+  if (overlay) {
+    overlay.classList.remove("hidden");
+  }
+}
+
+function closeLoginOverlay() {
+  const overlay = document.getElementById("login-overlay");
+  if (overlay) {
+    overlay.classList.add("hidden");
+  }
+}
+
+function switchLoginTab(tab) {
+  document.querySelectorAll(".login-tab-btn").forEach(btn => btn.classList.remove("active"));
+  document.querySelectorAll(".login-tab-panel").forEach(panel => panel.classList.remove("active"));
+
+  if (tab === "quick") {
+    document.getElementById("tab-btn-quick").classList.add("active");
+    document.getElementById("login-tab-quick").classList.add("active");
+  } else if (tab === "user") {
+    document.getElementById("tab-btn-user").classList.add("active");
+    document.getElementById("login-tab-user").classList.add("active");
+  } else if (tab === "register") {
+    document.getElementById("tab-btn-register").classList.add("active");
+    document.getElementById("login-tab-register").classList.add("active");
+  }
+}
+
+function updateUserSessionUI(user) {
+  if (!user) return;
+  const roleBadge = document.getElementById("user-role-badge");
+  const nameDisplay = document.getElementById("user-display-name");
+
+  if (roleBadge) {
+    const roleStr = (user.role || "guest").toLowerCase();
+    roleBadge.textContent = roleStr.toUpperCase();
+    roleBadge.className = `user-role-badge role-badge-${roleStr}`;
+  }
+
+  if (nameDisplay) {
+    nameDisplay.textContent = user.full_name || user.email || "User";
+  }
+}
+
+function setSession(token, user) {
+  currentToken = token;
+  currentUser = user;
+  localStorage.setItem("poweros_token", token);
+  localStorage.setItem("poweros_user", JSON.stringify(user));
+  updateUserSessionUI(user);
+  closeLoginOverlay();
+}
+
+async function handleGuestLogin() {
+  try {
+    const res = await fetch("/api/v1/auth/guest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ guest_name: "Guest Visitor" })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setSession(data.access_token, data.user);
+    } else {
+      alert("Failed to initialize guest session.");
+    }
+  } catch (err) {
+    console.error("Guest login error:", err);
+    setSession("guest-offline-token", {
+      id: "guest-001",
+      email: "guest@poweros.energy",
+      full_name: "Guest Visitor",
+      role: "guest"
+    });
+  }
+}
+
+async function handleAdminLogin() {
+  try {
+    const res = await fetch("/api/v1/auth/admin-demo", {
+      method: "POST"
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setSession(data.access_token, data.user);
+    } else {
+      alert("Admin login failed.");
+    }
+  } catch (err) {
+    console.error("Admin login error:", err);
+    setSession("admin-offline-token", {
+      id: "admin-001",
+      email: "admin@poweros.energy",
+      full_name: "System Administrator",
+      role: "admin"
+    });
+  }
+}
+
+async function handleGmailAuth() {
+  const userGmail = prompt("Enter your Gmail address to register / sign in:", "operator.alex@gmail.com");
+  if (!userGmail || !userGmail.includes("@")) return;
+
+  const userName = prompt("Enter your full name:", userGmail.split("@")[0].replace(".", " ").toUpperCase());
+
+  try {
+    const res = await fetch("/api/v1/auth/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: userGmail.trim(),
+        full_name: userName || "Gmail User",
+        google_token: "google_oauth_token_" + Date.now(),
+        role: "consumer"
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setSession(data.access_token, data.user);
+    } else {
+      const errData = await res.json();
+      alert(`Gmail Sign-in failed: ${errData.detail || 'Unknown error'}`);
+    }
+  } catch (err) {
+    console.error("Gmail auth error:", err);
+    setSession("gmail-token-" + Date.now(), {
+      id: "gmail-user-1",
+      email: userGmail.trim(),
+      full_name: userName || "Gmail User",
+      role: "consumer"
+    });
+  }
+}
+
+async function handleUserLoginForm(event) {
+  event.preventDefault();
+  const email = document.getElementById("login-email").value;
+  const password = document.getElementById("login-password").value;
+
+  try {
+    const res = await fetch("/api/v1/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setSession(data.access_token, data.user);
+    } else {
+      const errData = await res.json();
+      alert(`Login failed: ${errData.detail || 'Invalid email or password'}`);
+    }
+  } catch (err) {
+    console.error("Login form error:", err);
+    alert("Network error during login.");
+  }
+}
+
+async function handleRegisterForm(event) {
+  event.preventDefault();
+  const fullName = document.getElementById("reg-name").value;
+  const email = document.getElementById("reg-email").value;
+  const password = document.getElementById("reg-password").value;
+  const role = document.getElementById("reg-role").value;
+
+  try {
+    const res = await fetch("/api/v1/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ full_name: fullName, email, password, role })
+    });
+
+    if (res.ok) {
+      alert("Registration successful! Logging in...");
+      const loginRes = await fetch("/api/v1/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+      if (loginRes.ok) {
+        const data = await loginRes.json();
+        setSession(data.access_token, data.user);
+      }
+    } else {
+      const errData = await res.json();
+      alert(`Registration failed: ${errData.detail || 'Could not create account'}`);
+    }
+  } catch (err) {
+    console.error("Registration form error:", err);
+    alert("Network error during registration.");
+  }
+}
+
+function logout() {
+  localStorage.removeItem("poweros_token");
+  localStorage.removeItem("poweros_user");
+  currentToken = null;
+  currentUser = null;
+  
+  const roleBadge = document.getElementById("user-role-badge");
+  const nameDisplay = document.getElementById("user-display-name");
+  if (roleBadge) {
+    roleBadge.textContent = "GUEST";
+    roleBadge.className = "user-role-badge role-badge-guest";
+  }
+  if (nameDisplay) {
+    nameDisplay.textContent = "Guest Visitor";
+  }
+
+  openLoginOverlay();
+}
+

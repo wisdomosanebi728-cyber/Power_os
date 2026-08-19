@@ -11,6 +11,114 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 </head>
 <body class="poweros-theme">
+
+  <!-- UNIQUE POWER OS LOGIN PORTAL OVERLAY -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-bg-glow"></div>
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo-glow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </div>
+        <h1 class="login-title">POWER OS</h1>
+        <p class="login-subtitle">Microgrid Telemetry & Autonomous Dispatch Center</p>
+      </div>
+
+      <!-- Quick Access Mode Switcher -->
+      <div class="login-tabs">
+        <button class="login-tab-btn active" id="tab-btn-quick" onclick="switchLoginTab('quick')">⚡ Quick Access</button>
+        <button class="login-tab-btn" id="tab-btn-user" onclick="switchLoginTab('user')">👤 User Login</button>
+        <button class="login-tab-btn" id="tab-btn-register" onclick="switchLoginTab('register')">📝 Register</button>
+      </div>
+
+      <!-- TAB 1: QUICK ACCESS (GUEST, ADMIN, GMAIL) -->
+      <div id="login-tab-quick" class="login-tab-panel active">
+        <div class="quick-access-grid">
+          <!-- Guest Access Card -->
+          <div class="access-mode-card card-guest" onclick="handleGuestLogin()">
+            <div class="mode-icon">⚡</div>
+            <div class="mode-info">
+              <h3>Login as Guest</h3>
+              <p>Instant 1-click read-only access to live telemetry, solar metrics & battery dispatch.</p>
+            </div>
+            <button class="btn-mode-action btn-guest">Enter as Guest &rarr;</button>
+          </div>
+
+          <!-- Admin Portal Card -->
+          <div class="access-mode-card card-admin" onclick="handleAdminLogin()">
+            <div class="mode-icon">🛡️</div>
+            <div class="mode-info">
+              <h3>Login as Admin</h3>
+              <p>Full operator & admin control: Optimization dispatch overrides, settings & devices.</p>
+            </div>
+            <button class="btn-mode-action btn-admin">Enter as Admin &rarr;</button>
+          </div>
+        </div>
+
+        <div class="divider-or"><span>OR SIGN IN WITH PROVIDER</span></div>
+
+        <!-- Gmail Sign-in / Registration button -->
+        <button class="btn-gmail-auth" onclick="handleGmailAuth()">
+          <svg class="google-svg-icon" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.28v3.15C3.25 21.3 7.31 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.28C.46 8.2.0 10.05.0 12s.46 3.8 1.28 5.42l4-3.15z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.28 6.58l4 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+          </svg>
+          <span>Continue / Register with Gmail</span>
+        </button>
+      </div>
+
+      <!-- TAB 2: USER / ADMIN EMAIL LOGIN FORM -->
+      <div id="login-tab-user" class="login-tab-panel">
+        <form id="form-login" onsubmit="handleUserLoginForm(event)">
+          <div class="form-group">
+            <label for="login-email">Email Address</label>
+            <input type="email" id="login-email" placeholder="e.g. operator@poweros.energy" required />
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="••••••••" required />
+          </div>
+          <button type="submit" class="btn-primary-auth">Sign In to Dashboard</button>
+        </form>
+      </div>
+
+      <!-- TAB 3: REGISTER NEW ACCOUNT FORM -->
+      <div id="login-tab-register" class="login-tab-panel">
+        <form id="form-register" onsubmit="handleRegisterForm(event)">
+          <div class="form-group">
+            <label for="reg-name">Full Name</label>
+            <input type="text" id="reg-name" placeholder="e.g. Amina Bello" required />
+          </div>
+          <div class="form-group">
+            <label for="reg-email">Email Address</label>
+            <input type="email" id="reg-email" placeholder="e.g. amina@poweros.energy" required />
+          </div>
+          <div class="form-group">
+            <label for="reg-password">Password</label>
+            <input type="password" id="reg-password" placeholder="••••••••" required />
+          </div>
+          <div class="form-group">
+            <label for="reg-role">Select Role</label>
+            <select id="reg-role">
+              <option value="operator">Operator (Full Control)</option>
+              <option value="consumer">Consumer (Microgrid Resident)</option>
+              <option value="admin">Administrator</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary-auth">Create Power OS Account</button>
+        </form>
+      </div>
+
+      <div class="login-footer">
+        <span>⚡ Power OS v1.0.0 &bull; Secure Industrial IoT Architecture</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Top Navigation Header -->
   <header class="top-nav">
     <div class="brand-group">
@@ -46,6 +154,18 @@
       </div>
       <div class="status-pill status-clock" id="virtual-clock">
         <span id="time-display">--:--:-- UTC</span>
+      </div>
+      <!-- USER SESSION STATUS PILL -->
+      <div class="status-pill status-user" id="user-session-pill" onclick="openLoginOverlay()">
+        <span class="user-role-badge role-badge-guest" id="user-role-badge">GUEST</span>
+        <span id="user-display-name">Guest Visitor</span>
+        <button class="btn-logout" onclick="event.stopPropagation(); logout()" title="Logout / Switch Account">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
       </div>
     </div>
   </header>
