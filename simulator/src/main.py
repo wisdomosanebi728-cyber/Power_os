@@ -2,7 +2,7 @@ import time
 import signal
 import sys
 import logging
-from simulator.src.config import SimulatorConfig
+from src.config import SimulatorConfig
 from simulator.src.scenario_engine import ScenarioEngine
 from simulator.src.mqtt_publisher import MqttTelemetryPublisher
 
