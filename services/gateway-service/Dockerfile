@@ -35,6 +35,6 @@ RUN pip install --no-cache-dir .
 
 ENV PYTHONPATH=/app/services/common:/app/services/auth-device-service:/app/services/energy-service:/app/services/forecasting-service:/app/services/optimization-service:/app/services/ingestion-service:/app/services/gateway-service
 
-EXPOSE 8080
+EXPOSE 10000
 
-CMD ["uvicorn", "poweros_gateway.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "poweros_gateway.main:app", "--host", "0.0.0.0", "--port", "10000"]
